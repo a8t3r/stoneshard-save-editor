@@ -67,25 +67,57 @@ def compress_stoneshard_sav(content: Dict, sav_path: Path) -> Dict:
 
     print(f"Updated save file written to {sav_path}")
 
+config_items = {
+    "xp": "XP",
+    "ability_points": "AP",
+    "skill_points": "SP",
+    "level": "LVL",
+    "strength": "STR",
+    "agility": "AGL",
+    "perception": "PRC",
+    "vitality": "Vitality",
+    "will": "WIL"
+}
+
+default_skill_names = [
+    "o_skill_butchering_ico",
+    "o_skill_craft_ico",
+    "o_pass_skill_Sudden_Attacks",
+    "o_skill_trap_search_ico"
+]
 
 def mutate_character(save_content: Dict, character_config: Dict):
     character = save_content["characterDataMap"]
+    skills_list = save_content["skillsDataMap"]["skillsAllDataList"]
+    skills_panel = save_content["skillsDataMap"]["skillsPanelDataList"]
 
     for key, value in character_config.items():
-        if key == "xp":
-            character["XP"] = int(value)
-        elif key == "ability_points":
-            character["AP"] = int(value)
-        elif key == "str":
-            character["STR"] = int(value)
-        elif key == "level":
-            character["LVL"] = int(value)
+        if key == "clear_skills" and value == "true":
+            count = 0
+            for i in range(0, len(skills_list), 5):
+                if skills_list[i] not in default_skill_names and int(skills_list[i + 1]) == 1:
+                    count += 1
+                    skills_list[i + 1] = "0.0"
+            character["SP"] = count
+            for i in range(0, 4):
+                skills_panel[i] = [ -4.0, -4.0, -4.0, -4.0, -4.0, -4.0, -4.0, -4.0, -4.0, -4.0 ]
 
+        if key == "clear_abilities" and value == "true":
+            count = 0
+            abilities = ["STR", "AGL", "PRC", "Vitality", "WIL"]
+            for ability in abilities:
+                minimum = min(int(character[ability]), 10)
+                count += int(character[ability]) - minimum
+                character[ability] = minimum
+            character["AP"] = count
+
+        if key in config_items:
+            character[config_items[key]] = int(value)
 
 def mutate_inventory(save_content: Dict, inventory_config: Dict):
     inventory = save_content["inventoryDataList"]
     for key, value, *ignored in inventory:
-        if inventory_config["moneybag"] and key == "o_inv_moneybag":
+        if "moneybag" in inventory_config and key == "o_inv_moneybag":
             value["Stack"] = int(inventory_config["moneybag"])
 
 
